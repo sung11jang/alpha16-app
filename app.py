@@ -2,9 +2,10 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import google.generativeai as genai
+import FinanceDataReader as fdr
 
 # ==============================================================================
-# 1. 페이지 레이아웃 및 기관용 터미널 시인성 CSS 설정
+# 1. 페이지 레이아웃 및 스타일 설정
 # ==============================================================================
 st.set_page_config(
     page_title="Alpha-16 v7.5 Institutional Terminal",
@@ -15,55 +16,79 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .main-title {
-        font-size: 2.1rem;
-        font-weight: 800;
-        color: #0f172a;
-        margin-bottom: 0.2rem;
-    }
-    .sub-title {
-        font-size: 0.95rem;
-        color: #64748b;
-        margin-bottom: 1.5rem;
-    }
-    .metric-card {
-        background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        padding: 1rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
+    .main-title { font-size: 2.1rem; font-weight: 800; color: #0f172a; margin-bottom: 0.2rem; }
+    .sub-title { font-size: 0.95rem; color: #64748b; margin-bottom: 1.5rem; }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] {
-        height: 45px;
-        white-space: pre-wrap;
-        background-color: #f1f5f9;
-        border-radius: 8px 8px 0px 0px;
-        gap: 1px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        font-weight: 600;
+        height: 45px; white-space: pre-wrap; background-color: #f1f5f9;
+        border-radius: 8px 8px 0px 0px; padding: 10px; font-weight: 600;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #2563eb !important;
-        color: white !important;
-    }
+    .stTabs [aria-selected="true"] { background-color: #2563eb !important; color: white !important; }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-title">🏛️ Alpha-16 v7.5 Institutional Platform</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">16대 Moat 팩터 평가 · 퀀텀점프 Gate 심사 · 3대 적정가치 밴드 · 기계적 트레일링 스탑</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">KRX 시총 상위 300대 기업 & 글로벌 빅테크 통합 터미널</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. 사이드바: Gemini 3.x 엔진 설정 & 자금 관리 원칙
+# 2. KRX 시가총액 상위 300위 + 글로벌 빅테크 마스터 데이터 자동 캐싱
+# ==============================================================================
+@st.cache_data(ttl=86400) # 하루 단위 자동 갱신
+def load_top300_krx_and_global():
+    stock_dict = {}
+
+    # 1. 글로벌 핵심 빅테크 & 반도체 기본 등록
+    global_tech = {
+        "엔비디아 (NVDA)": "NVDA",
+        "TSMC (TSM)": "TSM",
+        "ASML (ASML)": "ASML",
+        "애플 (AAPL)": "AAPL",
+        "마이크로소프트 (MSFT)": "MSFT",
+        "알파벳/구글 (GOOGL)": "GOOGL",
+        "아마존 (AMZN)": "AMZN",
+        "메타 (META)": "META",
+        "테슬라 (TSLA)": "TSLA",
+        "브로드컴 (AVGO)": "AVGO",
+        "AMD (AMD)": "AMD",
+        "퀄컴 (QCOM)": "QCOM",
+        "암 홀딩스 (ARM)": "ARM",
+        "인텔 (INTC)": "INTC"
+    }
+    stock_dict.update(global_tech)
+
+    try:
+        # 2. 한국거래소(KRX) 전체 시가총액 데이터 호출 후 상위 300위 추출
+        krx_df = fdr.StockListing('KRX')
+        krx_df = krx_df.sort_values(by='Marcap', ascending=False).head(300)
+
+        for idx, row in krx_df.iterrows():
+            code = str(row['Code']).zfill(6)
+            name = str(row['Name']).strip()
+            market = str(row['Market']).strip()
+            
+            # yfinance 호환 티커 규격 변환 (.KS / .KQ)
+            suffix = ".KS" if market == "KOSPI" else ".KQ"
+            yf_ticker = f"{code}{suffix}"
+            
+            display_label = f"{name} ({code} | {market})"
+            stock_dict[display_label] = yf_ticker
+    except Exception as e:
+        # 비상용 기본 상위 종목 폴백
+        stock_dict["삼성전자 (005930.KS)"] = "005930.KS"
+        stock_dict["SK하이닉스 (000660.KS)"] = "000660.KS"
+
+    stock_dict["[직접 티커 입력]"] = "CUSTOM"
+    return stock_dict
+
+STOCK_DICT = load_top300_krx_and_global()
+
+# ==============================================================================
+# 3. 사이드바: Gemini 3.x 엔진 설정
 # ==============================================================================
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 
 with st.sidebar:
     st.header("⚙️ 시스템 환경 설정")
-    
     selected_model = st.selectbox(
         "🧠 AI 모델 엔진 (Gemini 3.x)",
         [
@@ -73,90 +98,54 @@ with st.sidebar:
             "gemini-3.5-flash-lite",
             "gemini-3.1-pro-preview"
         ],
-        index=0,
-        help="Google Gemini 최신 3세대 라인업"
+        index=0
     )
     
     if not api_key:
-        api_key = st.text_input("Gemini API Key (무료)", type="password", help="Google AI Studio에서 발급받은 키 입력")
+        api_key = st.text_input("Gemini API Key", type="password")
     
     if api_key:
         genai.configure(api_key=api_key)
         st.success(f"🟢 {selected_model} 연동 완료")
     else:
-        st.warning("⚠️ API 키를 입력하거나 Secrets에 등록해주세요.")
+        st.warning("⚠️ API 키를 입력해주세요.")
 
     st.divider()
     st.markdown("### 🛡️ Alpha-16 자금 관리 3대 원칙")
     st.markdown("""
-    - **Free-Ride**: +50% 시 30% 매도, +100% 시 원금 100% 회수
+    - **Free-Ride**: +50% 시 30% 매도, +100% 시 원금 회수
     - **하방 스탑**: 고점 -10%(30%), -20%(50%), -30%(전량 현금화)
     - **초기 손절**: -7%(50% 축소), -10%(전량 칼손절)
     """)
 
 # ==============================================================================
-# 3. 한글/영문 스마트 검색 및 자동완성 매핑
+# 4. 스마트 검색 바 (시총 300위 한글 검색)
 # ==============================================================================
-STOCK_DICT = {
-    # 글로벌 빅테크 & 반도체
-    "엔비디아 (NVDA)": "NVDA",
-    "TSMC (TSM)": "TSM",
-    "ASML (ASML)": "ASML",
-    "애플 (AAPL)": "AAPL",
-    "마이크로소프트 (MSFT)": "MSFT",
-    "알파벳/구글 (GOOGL)": "GOOGL",
-    "아마존 (AMZN)": "AMZN",
-    "메타 (META)": "META",
-    "테슬라 (TSLA)": "TSLA",
-    "브로드컴 (AVGO)": "AVGO",
-    "AMD (AMD)": "AMD",
-    "퀄컴 (QCOM)": "QCOM",
-    "암 홀딩스 (ARM)": "ARM",
-    "인텔 (INTC)": "INTC",
-    
-    # 국내 대표 코스피 / 코스닥
-    "삼성전자 (005930.KS)": "005930.KS",
-    "SK하이닉스 (000660.KS)": "000660.KS",
-    "한미반도체 (042700.KS)": "042700.KS",
-    "현대차 (005380.KS)": "005380.KS",
-    "기아 (000270.KS)": "000270.KS",
-    "LG에너지솔루션 (373220.KS)": "373220.KS",
-    "삼성바이오로직스 (207940.KS)": "207940.KS",
-    "셀트리온 (068270.KS)": "068270.KS",
-    "알테오젠 (196170.KQ)": "196170.KQ",
-    "에코프로비엠 (247540.KQ)": "247540.KQ",
-    "NAVER (035420.KS)": "035420.KS",
-    "카카오 (035720.KS)": "035720.KS",
-    "직접 티커 입력": "CUSTOM"
-}
-
-col_search, col_custom, col_btn = st.columns([3, 2, 1])
+col_search, col_custom = st.columns([3, 1])
 
 with col_search:
-    selected_name = st.selectbox("🔍 종목 선택 (한글명/티커 자동완성)", list(STOCK_DICT.keys()), index=0)
+    selected_name = st.selectbox(
+        "🔍 종목 검색 (KRX 시가총액 상위 300대 기업 & 글로벌 빅테크)", 
+        list(STOCK_DICT.keys()), 
+        index=0
+    )
 
 target_ticker = STOCK_DICT[selected_name]
 
 with col_custom:
     if target_ticker == "CUSTOM":
-        target_ticker = st.text_input("직접 티커 입력 (예: PLTR, 005930.KS)", value="NVDA").strip().upper()
+        target_ticker = st.text_input("직접 티커 입력 (예: 005930.KS, NVDA)", value="005930.KS").strip().upper()
     else:
-        st.text_input("확정 티커", value=target_ticker, disabled=True)
-
-with col_btn:
-    st.write("")
-    st.write("")
-    load_btn = st.button("🔍 데이터 로드", use_container_width=True)
+        st.text_input("연동 티커", value=target_ticker, disabled=True)
 
 # ==============================================================================
-# 4. 실시간 팩트 데이터 추출 & 4대 마스터 탭 렌더링
+# 5. 실시간 팩트 데이터 추출 & 4대 마스터 탭
 # ==============================================================================
 if target_ticker and target_ticker != "CUSTOM":
     try:
         stock = yf.Ticker(target_ticker)
         info = stock.info
         
-        # 실시간 데이터 추출
         current_price = info.get("currentPrice", info.get("regularMarketPrice", 0))
         high_52 = info.get("fiftyTwoWeekHigh", current_price)
         low_52 = info.get("fiftyTwoWeekLow", current_price)
@@ -171,7 +160,7 @@ if target_ticker and target_ticker != "CUSTOM":
         opm = f"{info.get('operatingMargins', 0)*100:.2f}%" if info.get('operatingMargins') else "N/A"
         revenue = info.get("totalRevenue", "N/A")
         net_income = info.get("netIncomeToCommon", "N/A")
-        short_name = info.get("shortName", target_ticker)
+        short_name = info.get("shortName", selected_name.split('(')[0].strip())
 
         tab1, tab2, tab3, tab4 = st.tabs([
             "📊 [Step 0~8] Alpha-16 마스터 리포트", 
@@ -180,9 +169,6 @@ if target_ticker and target_ticker != "CUSTOM":
             "🛡️ 3단계 스탑 & 슬롯 관리"
         ])
 
-        # ----------------------------------------------------
-        # TAB 1: Alpha-16 v7.5 9단계 마스터 파이프라인
-        # ----------------------------------------------------
         with tab1:
             st.markdown(f"### 📌 [Step 0] 팩트 데이터 교차 검증: **{short_name} ({target_ticker})**")
             
@@ -264,7 +250,6 @@ if target_ticker and target_ticker != "CUSTOM":
                         ======================================================================
                         """
 
-                        # Gemini 3.x 세대 우선 순차 Fallback
                         model_candidates = [
                             selected_model,
                             "gemini-3.7-flash",
@@ -274,7 +259,6 @@ if target_ticker and target_ticker != "CUSTOM":
                             "gemini-3.1-pro-preview"
                         ]
                         
-                        # 중복 제거
                         model_queue = []
                         for m in model_candidates:
                             if m not in model_queue:
@@ -299,16 +283,11 @@ if target_ticker and target_ticker != "CUSTOM":
                             st.success(f"✅ {used_engine} 엔진으로 9단계 풀 리포트 생성 완료")
                             st.markdown(response_text)
                         else:
-                            st.error("API 호출 중 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
-            else:
-                st.info("💡 사이드바에 Gemini API Key를 입력하시면 9단계 풀 리포트가 활성화됩니다.")
+                            st.error("API 호출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
 
-        # ----------------------------------------------------
-        # TAB 2: 동종업계 피어 그룹 교차 비교 (Compare Matrix)
-        # ----------------------------------------------------
         with tab2:
             st.markdown("### ⚖️ 동종업계 피어 그룹 밸류에이션 비교")
-            default_peers = "NVDA, AMD, TSM, INTC, ASML" if "NVDA" in target_ticker or "TSM" in target_ticker else f"{target_ticker}, AAPL, MSFT, GOOGL"
+            default_peers = f"{target_ticker}, NVDA, TSM, 000660.KS" if "005930" in target_ticker else f"{target_ticker}, AAPL, MSFT, GOOGL"
             peers_input = st.text_input("비교할 티커 목록 (쉼표 구분)", value=default_peers)
             
             if peers_input:
@@ -333,9 +312,6 @@ if target_ticker and target_ticker != "CUSTOM":
                 if comp_data:
                     st.dataframe(pd.DataFrame(comp_data).set_index("티커"), use_container_width=True)
 
-        # ----------------------------------------------------
-        # TAB 3: 3대 재무제표 100% 원문 데이터
-        # ----------------------------------------------------
         with tab3:
             st.markdown("### 📑 전체 재무제표 원문 데이터")
             stmt_choice = st.radio("재무제표 선택", ["손익계산서 (Income Statement)", "대차대조표 (Balance Sheet)", "현금흐름표 (Cash Flow)"], horizontal=True)
@@ -346,12 +322,8 @@ if target_ticker and target_ticker != "CUSTOM":
             else:
                 st.dataframe(stock.cashflow, use_container_width=True)
 
-        # ----------------------------------------------------
-        # TAB 4: 기계적 트레일링 스탑 & 슬롯 관리 계산기
-        # ----------------------------------------------------
         with tab4:
             st.markdown("### 🛡️ [Step 5] 기계적 자금 관리 & 트레일링 스탑 계산기")
-            
             c1, c2 = st.columns(2)
             with c1:
                 my_buy_price = st.number_input("내 매수 단가", value=float(current_price))
