@@ -83,7 +83,7 @@ if ticker_input:
             if gemini_key:
                 if st.button("🚀 Alpha-16 v7.5 9단계 전체 리포트 생성", use_container_width=True):
                     with st.spinner("Step 0부터 Step 8까지 정밀 분석 중..."):
-                        model = genai.GenerativeModel("gemini-1.5-flash")
+                        model = genai.GenerativeModel("gemini-1.5-flash-latest")
                         prompt = f"""
                         너는 기업 펀더멘털 분석 및 기계적 자금 관리 시스템인 'Alpha-16 v7.5' 전문 분석가다.
                         내가 지정한 아래 9단계 파이프라인(Step 0 ~ Step 8)을 단 한 단계도 축약하거나 생략하지 말고 모두 온전히 전개해라.
