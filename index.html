@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alpha-16 v7.5 Fast Terminal</title>
+  <title>Alpha-16 v7.5 Real-Time Terminal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <script>
@@ -30,10 +30,10 @@
       <div class="flex justify-between items-center mb-3">
         <div class="flex items-center space-x-2">
           <span class="text-xl">🏛️</span>
-          <h1 class="font-bold text-lg tracking-tight">Alpha-16 v7.5 Turbo</h1>
+          <h1 class="font-bold text-lg tracking-tight">Alpha-16 v7.5 Live</h1>
         </div>
         <span class="flex items-center text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold">
-          ⚡ Turbo Stream
+          <span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Search Grounded
         </span>
       </div>
 
@@ -41,18 +41,18 @@
       <div class="bg-cardBg rounded-2xl p-3 border border-borderLine space-y-2">
         <div class="flex items-center bg-slate-900 rounded-xl px-3 py-2 border border-slate-700">
           <i class="fa-solid fa-magnifying-glass text-slate-400 mr-2 text-sm"></i>
-          <input id="stockInput" type="text" placeholder="종목명 또는 티커 (예: 삼성전자, NVDA, TSMC)" value="NVDA"
+          <input id="stockInput" type="text" placeholder="종목명 또는 티커 (예: 삼성전자, NVDA, SK하이닉스)" value="삼성전자"
                  class="w-full bg-transparent text-white text-sm focus:outline-none placeholder-slate-500" />
-          <button onclick="runFastAnalysis()" id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg ml-2 transition">
+          <button onclick="runLiveAnalysis()" id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg ml-2 transition">
             분석
           </button>
         </div>
 
         <div class="flex space-x-1.5 overflow-x-auto text-xs py-1 text-slate-300 no-scrollbar">
-          <button onclick="setStock('NVDA')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">엔비디아</button>
-          <button onclick="setStock('TSM')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">TSMC</button>
           <button onclick="setStock('삼성전자')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">삼성전자</button>
           <button onclick="setStock('SK하이닉스')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">SK하이닉스</button>
+          <button onclick="setStock('NVDA')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">엔비디아</button>
+          <button onclick="setStock('TSM')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">TSMC</button>
           <button onclick="setStock('AAPL')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">애플</button>
         </div>
       </div>
@@ -62,12 +62,12 @@
     <main class="p-4 space-y-4 flex-1">
 
       <div class="flex bg-slate-200 p-1 rounded-xl text-xs font-medium text-slate-600">
-        <button onclick="switchTab('tab-report')" id="btn-tab-report" class="flex-1 py-1.5 bg-white text-blue-600 font-bold rounded-lg shadow-sm transition">Alpha-16 정규 리포트</button>
+        <button onclick="switchTab('tab-report')" id="btn-tab-report" class="flex-1 py-1.5 bg-white text-blue-600 font-bold rounded-lg shadow-sm transition">Alpha-16 실시간 리포트</button>
         <button onclick="switchTab('tab-stop')" id="btn-tab-stop" class="flex-1 py-1.5 hover:text-slate-900 transition">자금관리/스탑</button>
         <button onclick="switchTab('tab-settings')" id="btn-tab-settings" class="flex-1 py-1.5 hover:text-slate-900 transition">설정</button>
       </div>
 
-      <!-- TAB 1: Ultra Fast Streaming Output -->
+      <!-- TAB 1: Real-Time Report Output -->
       <section id="tab-report" class="space-y-3">
         <div id="reportCard" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
           <div class="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -76,7 +76,7 @@
           </div>
 
           <div id="streamTextOutput" class="text-xs text-slate-700 leading-relaxed font-sans min-h-[120px]">
-            상단에서 종목명을 입력하고 [분석]을 누르면 즉시 초고속 실시간 출력이 시작됩니다.
+            상단에서 종목명을 입력하고 [분석]을 누르면 실시간 검색 기반의 최신 9단계 리포트가 전개됩니다.
           </div>
         </div>
       </section>
@@ -150,7 +150,7 @@
 
     function setStock(ticker) {
       document.getElementById('stockInput').value = ticker;
-      runFastAnalysis();
+      runLiveAnalysis();
     }
 
     function saveApiKey() {
@@ -176,8 +176,8 @@
       document.getElementById('stop3Price').innerText = (peak * 0.70).toFixed(2);
     }
 
-    // 초고속 다이렉트 스트리밍 엔진
-    async function runFastAnalysis() {
+    // 최신 실시간 구글 검색 연동 정밀 분석
+    async function runLiveAnalysis() {
       const ticker = document.getElementById('stockInput').value.trim();
       const apiKey = localStorage.getItem('GEMINI_API_KEY') || document.getElementById('userApiKey').value.trim();
 
@@ -196,81 +196,86 @@
       const reportStatusBadge = document.getElementById('reportStatusBadge');
       const streamTextOutput = document.getElementById('streamTextOutput');
 
-      reportHeaderTitle.innerText = `📊 ${ticker} 실시간 분석 중...`;
+      reportHeaderTitle.innerText = `📊 ${ticker} 실시간 정밀 분석 중...`;
       reportStatusBadge.className = 'text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold animate-pulse';
-      reportStatusBadge.innerText = `초고속 스트림`;
-      streamTextOutput.innerHTML = '<span class="text-blue-500 font-semibold">데이터 연결 중...</span>';
+      reportStatusBadge.innerText = `실시간 검색 연동`;
+      streamTextOutput.innerHTML = '<div class="text-center py-6 text-slate-400 space-y-2"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-600"></i><p>최신 시장가, 공시 실적 및 9단계 리포트를 생성하고 있습니다...</p></div>';
 
       const prompt = `
 너는 기업 펀더멘털 분석 및 기계적 자금 관리 시스템인 'Alpha-16 v7.5' 전문 분석가다.
-입력 종목 [${ticker}]에 대해 서론/인사말을 완전히 배제하고 즉시 [Step 0]부터 [Step 8]까지 압축된 핵심 팩트 위주로 빠르게 전개하라.
+구글 웹 검색을 통해 종목 [${ticker}]의 최신 실시간 주가, 52주 고점/저점, 최신 분기 실적(매출, 영업이익, OPM) 및 최신 재무지표(PER, PBR, ROE)를 검색하여 정확한 최신 팩트를 기반으로 아래 [Alpha-16 v7.5 정규 파이프라인 규격]의 Step 0 ~ Step 8을 누락 없이 완벽하게 작성하라.
 
 ======================================================================
 [Alpha-16 v7.5 정규 마스터 파이프라인 규격]
 ======================================================================
-[Step 0] 실시간 다중 채널 교차 검증 (기준가, 52주 고점/저가, PER, PBR, ROE, OPM, 순현금 체력)
-[Step 0.5] 산업 존재 이유 & 절대적 병목(Chokepoint), 고정비 레버리지, 피지컬 AI TAM 확장성, 본질적 해자
-[Step 0.8] 거시경제/지정학 리스크 및 Alpha-16 3중 방어 헷지
-[Step 1] 4대 축 16개 핵심 팩터 정밀 평가 (80점 만점 매트릭스 및 종합 점수/등급)
+[Step 0] 실시간 다중 채널 교차 검증
+ • 최신 실시간 기준가, 52주 최고/최저가, 고점 대비 괴리율(%), PER/PBR/ROE, 최신 실적 공시 팩트(매출/영업이익/OPM), 순현금 체력
+
+[Step 0.5] 산업의 존재 이유 & 숨겨진 본질적 해자 심층 분석
+ 1. 전방 산업 폭발 동인 및 절대적 병목(Chokepoint) 규명
+ 2. 고정비 레버리지 & 한계비용 제로 머신 구조
+ 3. 3~5년 다년 LTA 수주형 산업 전환 여부
+ 4. 피지컬 AI(자율주행/로봇) 거대 TAM 확장성
+ 5. 숨겨진 본질적 해자 및 경쟁사 대비 매트릭스
+
+[Step 0.8] 거시경제·정치·지정학적 리스크 및 포트폴리오 헷지 분석
+ 1. 미중 패권 갈등 및 관세/수출 통제
+ 2. 공급망 재편 및 글로벌 금리 압박
+ 3. Alpha-16 모델의 3중 방어 헷지
+
+[Step 1] 4대 축 16개 핵심 팩터 정밀 평가 (80점 만점 매트릭스)
+ • 경제적 해자(4개), 성장 동력(4개), 재무 품질(4개), 거버넌스&외생(4개)
+ • Moat 총점(80점 만점) 및 등급 도출
+
 [Step 2] 비선형 퀀텀점프 3대 게이트 (Gate 1~3 Pass/Fail)
-[Step 3] 포트폴리오 5대 슬롯 배분 (Slot 1~5 및 권장 비중 %)
+[Step 3] 포트폴리오 5대 슬롯 자산배분 & 가변 스탑 판정 (Slot 1~5)
 [Step 4] 시나리오별 3대 적정 가치 밴드 (Bull / Base / Bear)
 [Step 5] 실전 매매 프로토콜 (Free-Ride선 및 -10%/-20%/-30% 트레일링 스탑선)
-[Step 6] 뇌동매매 차단 재진입 게이트 (Gate R-1~R-3)
+[Step 6] 손절/청산 후 뇌동매매 차단 재진입 게이트 (Gate R-1 ~ R-3)
 [Step 7] 정밀 백테스팅 검증
-[Step 8] 최종 투자 결론 및 실전 행동 지침 (종합 판정, 즉각 실행 액션, 상방 목표가, 원칙 요약)
+[Step 8] 최종 투자 결론 및 실전 행동 지침 (종합 등급, 즉각 실행 액션, 상방 목표가, One-Line Verdict)
 ======================================================================
-군더더기 없이 간결하고 명확한 불렛포인트 및 팩트 중심으로 작성하라.
 `;
 
       try {
-        // 속도 최적화: gemini-2.5-flash 직결
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
+        // Search Grounding 표준 REST 규격 호출
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            tools: [{ googleSearch: {} }]
+          })
         });
 
-        if (!response.ok) {
-          throw new Error('API 호출 오류가 발생했습니다.');
+        const data = await response.json();
+
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+          let textResult = '';
+          data.candidates[0].content.parts.forEach(p => {
+            if (p.text) textResult += p.text;
+          });
+
+          streamTextOutput.innerHTML = textResult
+            .replace(/\*\*(.*?)\*\*/g, '<b class="text-slate-900">$1</b>')
+            .replace(/### (.*?)\n/g, '<h4 class="font-bold text-blue-600 text-sm mt-3 mb-1">$1</h4>')
+            .replace(/\[Step (.*?)\]/g, '<div class="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded text-xs inline-block my-1 border border-blue-200">Step $1</div>')
+            .replace(/\n/g, '<br/>');
+
+          reportHeaderTitle.innerText = `📊 ${ticker} 실시간 분석 완료`;
+          reportStatusBadge.className = 'text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold';
+          reportStatusBadge.innerText = '실시간 반영 완료';
+
+        } else if (data.error) {
+          throw new Error(data.error.message);
+        } else {
+          throw new Error('응답 결과를 파싱할 수 없습니다.');
         }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let fullText = '';
-        streamTextOutput.innerHTML = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const json = JSON.parse(line.substring(6));
-                if (json.candidates && json.candidates[0].content.parts[0].text) {
-                  fullText += json.candidates[0].content.parts[0].text;
-                  
-                  streamTextOutput.innerHTML = fullText
-                    .replace(/\*\*(.*?)\*\*/g, '<b class="text-slate-900">$1</b>')
-                    .replace(/### (.*?)\n/g, '<h4 class="font-bold text-blue-600 text-sm mt-3 mb-1">$1</h4>')
-                    .replace(/\[Step (.*?)\]/g, '<div class="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded text-xs inline-block my-1 border border-blue-200">Step $1</div>')
-                    .replace(/\n/g, '<br/>');
-                }
-              } catch (e) {}
-            }
-          }
-        }
-
-        reportHeaderTitle.innerText = `📊 ${ticker} 리포트 완료`;
-        reportStatusBadge.className = 'text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold';
-        reportStatusBadge.innerText = '완료';
 
       } catch (err) {
         streamTextOutput.innerHTML = `<div class="bg-rose-50 border border-rose-200 p-3 rounded-xl text-xs text-rose-700 font-medium">연결 실패: ${err.message}</div>`;
+        reportStatusBadge.className = 'text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold';
+        reportStatusBadge.innerText = '실패';
       }
     }
   </script>
