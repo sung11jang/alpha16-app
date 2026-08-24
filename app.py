@@ -29,7 +29,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-title">🏛️ Alpha-16 v7.5 기관용 퀀트 터미널</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">미국 S&P 500 (1~500위) · 코스피 100위 · 코스닥 500위 통합 마스터 플랫폼</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">미국 S&P 500 (1~500위) · 코스피 500위 · 코스닥 300위 통합 마스터 플랫폼</div>', unsafe_allow_html=True)
 
 # ==============================================================================
 # 2. 재무제표 표준 한글 계정과목 매핑 및 쉼표 포맷팅
@@ -98,19 +98,19 @@ def format_currency_df(df, is_kr):
     new_df = df.copy()
     new_df.index = [KOR_FINANCIAL_MAP.get(str(idx), str(idx)) for idx in new_df.index]
     
-    # 천 단위 쉼표 표기 적용
     for col in new_df.columns:
         new_df[col] = new_df[col].apply(lambda x: f"{x:,.0f}" if isinstance(x, (int, float)) and pd.notnull(x) else x)
     return new_df
 
 # ==============================================================================
-# 3. 미국 500위 / 코스피 100위 / 코스닥 500위 자동 캐싱 로더 (1,100여 개)
+# 3. 미국 500위 / 코스피 500위 / 코스닥 300위 자동 캐싱 로더 (1,300여 개)
 # ==============================================================================
 @st.cache_data(ttl=86400)
 def load_all_market_stocks():
     stock_dict = {}
     headers = {'User-Agent': 'Mozilla/5.0'}
 
+    # 1. 미국 S&P 500 전 종목 (1위 ~ 500위)
     try:
         sp500_url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
         tables = pd.read_html(requests.get(sp500_url, headers=headers, timeout=5).text)
@@ -129,10 +129,11 @@ def load_all_market_stocks():
         }
         stock_dict.update(fallback_us)
 
+    # 2. 국내 코스피 상위 500위 (10페이지) + 코스닥 상위 300위 (6페이지)
     try:
         targets = [
-            (0, ".KS", 2, "코스피 100"),
-            (1, ".KQ", 10, "코스닥 500")
+            (0, ".KS", 10, "코스피 500"),  # 50개 x 10페이지 = 500종목
+            (1, ".KQ", 6, "코스닥 300")   # 50개 x 6페이지 = 300종목
         ]
         for sosok, suffix, max_p, market_label in targets:
             for p in range(1, max_p + 1):
@@ -245,7 +246,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown("### 📊 감시 유니버스 현황")
-    st.info(f"등록된 감시 종목 수: **{len(STOCK_DICT)-1:,}개**\n\n(미국 500 + 코스피 100 + 코스닥 500)")
+    st.info(f"등록된 감시 종목 수: **{len(STOCK_DICT)-1:,}개**\n\n(미국 500 + 코스피 500 + 코스닥 300)")
     
     st.markdown("### 🛡️ Alpha-16 자금 관리 3대 원칙")
     st.markdown("""
@@ -261,7 +262,7 @@ col_search, col_custom = st.columns([3, 1])
 
 with col_search:
     selected_name = st.selectbox(
-        "🔍 종목 검색 (미국 500 / 코스피 100 / 코스닥 500 자동완성)", 
+        "🔍 종목 검색 (미국 500 / 코스피 500 / 코스닥 300 자동완성)", 
         list(STOCK_DICT.keys()), 
         index=0
     )
@@ -289,9 +290,24 @@ if target_ticker and target_ticker != "CUSTOM":
     curr_name = "원화 (KRW)" if is_kr else "달러 (USD)"
     curr_suffix = "원" if is_kr else ""
     
-    trailing_pe = info.get("trailingPE", "N/A")
-    forward_pe = info.get("forwardPE", "N/A")
+    # PER 소수점 2자리 포맷팅
+    raw_trailing_pe = info.get("trailingPE")
+    if isinstance(raw_trailing_pe, (int, float)):
+        trailing_pe_display = f"{raw_trailing_pe:.2f}배"
+    elif raw_trailing_pe and raw_trailing_pe != "N/A":
+        trailing_pe_display = f"{float(raw_trailing_pe):.2f}배" if str(raw_trailing_pe).replace('.','',1).isdigit() else str(raw_trailing_pe)
+    else:
+        trailing_pe_display = "N/A"
+
+    raw_forward_pe = info.get("forwardPE")
+    if isinstance(raw_forward_pe, (int, float)):
+        forward_pe_display = f"{raw_forward_pe:.2f}배"
+    elif raw_forward_pe and raw_forward_pe != "N/A":
+        forward_pe_display = f"{float(raw_forward_pe):.2f}배" if str(raw_forward_pe).replace('.','',1).isdigit() else str(raw_forward_pe)
+    else:
+        forward_pe_display = "N/A"
     
+    # ROE 포맷팅
     raw_roe = info.get("returnOnEquity")
     if isinstance(raw_roe, (int, float)):
         roe_display = f"{raw_roe * 100:.2f}%"
@@ -300,6 +316,7 @@ if target_ticker and target_ticker != "CUSTOM":
     else:
         roe_display = "N/A"
 
+    # PBR 소수점 2자리 포맷팅
     raw_pbr = info.get("priceToBook")
     if isinstance(raw_pbr, (int, float)):
         pbr_display = f"{raw_pbr:.2f}배"
@@ -308,6 +325,7 @@ if target_ticker and target_ticker != "CUSTOM":
     else:
         pbr_display = "N/A"
 
+    # 영업이익률 포맷팅
     raw_opm = info.get("operatingMargins")
     opm_display = f"{raw_opm * 100:.2f}%" if isinstance(raw_opm, (int, float)) else "N/A"
     
@@ -332,7 +350,7 @@ if target_ticker and target_ticker != "CUSTOM":
         m1.metric("현재 기준가", f"{curr_symbol} {current_price:,.0f}{curr_suffix}" if is_kr else f"{curr_symbol} {current_price:,.2f}")
         m2.metric("52주 최고가 대비", f"{drawdown:.2f}%", delta=f"{drawdown:.2f}%")
         m3.metric("52주 최고 / 최저", f"{high_52:,.0f} / {low_52:,.0f}{curr_suffix}" if is_kr else f"{curr_symbol} {high_52:,.2f} / {low_52:,.2f}")
-        m4.metric("PER (과거 실적)", f"{trailing_pe}배" if trailing_pe != "N/A" else "N/A")
+        m4.metric("PER (과거 실적)", f"{trailing_pe_display}")
         m5.metric("PBR (순자산비율)", f"{pbr_display}")
         m6.metric("ROE / 영업이익률", f"{roe_display} / {opm_display}")
 
@@ -349,12 +367,12 @@ if target_ticker and target_ticker != "CUSTOM":
                     prompt = f"""
                     너는 대한민국 및 글로벌 주식 시장의 기업 펀더멘털 분석과 기계적 자금 관리 시스템인 'Alpha-16 v7.5' 전문 수석 애널리스트다.
                     내가 아래 제공하는 [100% 최신 실시간 팩트 데이터]를 바탕으로, Alpha-16 v7.5 정규 마스터 파이프라인(Step 0부터 Step 8)을 단 한 단계도 축약하거나 생략하지 말고 모두 온전히 전개하라.
-                    모든 금액 수치는 통화 단위({curr_name})와 천 단위 쉼표(,)를 정확히 표기하라.
+                    모든 금액 수치는 통화 단위({curr_name})와 천 단위 쉼표(,)를 정확히 표기하고, PER 수치는 소수점 2자리로 명확히 작성하라.
 
                     [100% 최신 실시간 팩트 데이터]
                     - 종목명/티커: {target_ticker} ({short_name}) [기준 통화: {curr_name}]
                     - 실시간 현재가: {price_fmt}, 52주 최고가: {high_fmt}, 최저가: {low_fmt}, 고점대비 하락률: {drawdown:.2f}%
-                    - PER(Trailing): {trailing_pe}, Forward PER: {forward_pe}, PBR: {pbr_display}, ROE: {roe_display}, 영업이익률(OPM): {opm_display}
+                    - PER(Trailing): {trailing_pe_display}, Forward PER: {forward_pe_display}, PBR: {pbr_display}, ROE: {roe_display}, 영업이익률(OPM): {opm_display}
                     - 최근 매출액: {revenue_str}, 당기순이익: {net_income_str}
 
                     ======================================================================
@@ -461,10 +479,19 @@ if target_ticker and target_ticker != "CUSTOM":
                 p_curr_sym = "₩" if p_is_kr else "$"
                 p_suffix = "원" if p_is_kr else ""
                 
+                # PER 소수점 2자리 포맷팅
+                p_trailing_pe = p_info.get("trailingPE")
+                p_pe_str = f"{p_trailing_pe:.2f}배" if isinstance(p_trailing_pe, (int, float)) else "N/A"
+
+                p_fwd_pe = p_info.get("forwardPE")
+                p_fwd_str = f"{p_fwd_pe:.2f}배" if isinstance(p_fwd_pe, (int, float)) else "N/A"
+
                 p_roe = p_info.get("returnOnEquity")
                 p_roe_str = f"{p_roe*100:.2f}%" if isinstance(p_roe, (int, float)) else (str(p_roe) if p_roe else "N/A")
+                
                 p_pbr = p_info.get("priceToBook")
                 p_pbr_str = f"{p_pbr:.2f}배" if isinstance(p_pbr, (int, float)) else (str(p_pbr) if p_pbr else "N/A")
+                
                 p_opm = p_info.get("operatingMargins")
                 p_opm_str = f"{p_opm*100:.2f}%" if isinstance(p_opm, (int, float)) else "N/A"
 
@@ -472,8 +499,8 @@ if target_ticker and target_ticker != "CUSTOM":
                     "티커": p,
                     "기업명": p_info.get("shortName", p),
                     "현재가": f"{p_curr_sym} {p_price:,.0f}{p_suffix}" if p_is_kr else f"{p_curr_sym} {p_price:,.2f}",
-                    "PER (과거실적)": f"{p_info.get('trailingPE', 'N/A')}배" if p_info.get('trailingPE') else "N/A",
-                    "Forward PER (선행)": f"{p_info.get('forwardPE', 'N/A')}배" if p_info.get('forwardPE') else "N/A",
+                    "PER (과거실적)": p_pe_str,
+                    "Forward PER (선행)": p_fwd_str,
                     "PBR (순자산비율)": p_pbr_str,
                     "ROE (자기자본이익률)": p_roe_str,
                     "영업이익률 (OPM)": p_opm_str,
