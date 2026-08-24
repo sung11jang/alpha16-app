@@ -2,4 +2,3 @@ streamlit
 yfinance
 pandas
 google-generativeai
-FinanceDataReader

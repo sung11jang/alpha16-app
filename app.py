@@ -2,7 +2,6 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import google.generativeai as genai
-import FinanceDataReader as fdr
 
 # ==============================================================================
 # 1. 페이지 레이아웃 및 스타일 설정
@@ -28,59 +27,104 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-title">🏛️ Alpha-16 v7.5 Institutional Platform</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">KRX 시총 상위 300대 기업 & 글로벌 빅테크 통합 터미널</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">국내 코스피/코스닥 핵심 우량주 & 글로벌 빅테크 통합 터미널</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. KRX 시가총액 상위 300위 + 글로벌 빅테크 마스터 데이터 자동 캐싱
+# 2. 국내 주요 상위 종목 & 글로벌 빅테크 내장 마스터 딕셔너리
 # ==============================================================================
-@st.cache_data(ttl=86400) # 하루 단위 자동 갱신
-def load_top300_krx_and_global():
-    stock_dict = {}
-
-    # 1. 글로벌 핵심 빅테크 & 반도체 기본 등록
-    global_tech = {
-        "엔비디아 (NVDA)": "NVDA",
-        "TSMC (TSM)": "TSM",
-        "ASML (ASML)": "ASML",
-        "애플 (AAPL)": "AAPL",
-        "마이크로소프트 (MSFT)": "MSFT",
-        "알파벳/구글 (GOOGL)": "GOOGL",
-        "아마존 (AMZN)": "AMZN",
-        "메타 (META)": "META",
-        "테슬라 (TSLA)": "TSLA",
-        "브로드컴 (AVGO)": "AVGO",
-        "AMD (AMD)": "AMD",
-        "퀄컴 (QCOM)": "QCOM",
-        "암 홀딩스 (ARM)": "ARM",
-        "인텔 (INTC)": "INTC"
-    }
-    stock_dict.update(global_tech)
-
-    try:
-        # 2. 한국거래소(KRX) 전체 시가총액 데이터 호출 후 상위 300위 추출
-        krx_df = fdr.StockListing('KRX')
-        krx_df = krx_df.sort_values(by='Marcap', ascending=False).head(300)
-
-        for idx, row in krx_df.iterrows():
-            code = str(row['Code']).zfill(6)
-            name = str(row['Name']).strip()
-            market = str(row['Market']).strip()
-            
-            # yfinance 호환 티커 규격 변환 (.KS / .KQ)
-            suffix = ".KS" if market == "KOSPI" else ".KQ"
-            yf_ticker = f"{code}{suffix}"
-            
-            display_label = f"{name} ({code} | {market})"
-            stock_dict[display_label] = yf_ticker
-    except Exception as e:
-        # 비상용 기본 상위 종목 폴백
-        stock_dict["삼성전자 (005930.KS)"] = "005930.KS"
-        stock_dict["SK하이닉스 (000660.KS)"] = "000660.KS"
-
-    stock_dict["[직접 티커 입력]"] = "CUSTOM"
-    return stock_dict
-
-STOCK_DICT = load_top300_krx_and_global()
+STOCK_DICT = {
+    # 글로벌 빅테크 & 반도체
+    "엔비디아 (NVDA)": "NVDA",
+    "TSMC (TSM)": "TSM",
+    "ASML (ASML)": "ASML",
+    "애플 (AAPL)": "AAPL",
+    "마이크로소프트 (MSFT)": "MSFT",
+    "알파벳/구글 (GOOGL)": "GOOGL",
+    "아마존 (AMZN)": "AMZN",
+    "메타 (META)": "META",
+    "테슬라 (TSLA)": "TSLA",
+    "브로드컴 (AVGO)": "AVGO",
+    "AMD (AMD)": "AMD",
+    "퀄컴 (QCOM)": "QCOM",
+    "암 홀딩스 (ARM)": "ARM",
+    "인텔 (INTC)": "INTC",
+    "마이크론 (MU)": "MU",
+    "팔란티어 (PLTR)": "PLTR",
+    
+    # 국내 반도체/소부장
+    "삼성전자 (005930.KS)": "005930.KS",
+    "SK하이닉스 (000660.KS)": "000660.KS",
+    "한미반도체 (042700.KS)": "042700.KS",
+    "리노공업 (058470.KQ)": "058470.KQ",
+    "HPSP (403870.KQ)": "403870.KQ",
+    "이오테크닉스 (039030.KQ)": "039030.KQ",
+    "동진쎄미켐 (005290.KQ)": "005290.KQ",
+    "솔브레인 (357780.KQ)": "357780.KQ",
+    "원익IPS (240810.KQ)": "240810.KQ",
+    "주성엔지니어링 (036930.KQ)": "036930.KQ",
+    "ISC (095340.KQ)": "095340.KQ",
+    "하나마이크론 (067310.KQ)": "067310.KQ",
+    "테크윙 (089030.KQ)": "089030.KQ",
+    "디아이티 (110990.KQ)": "110990.KQ",
+    "유진테크 (084370.KQ)": "084370.KQ",
+    
+    # 2차전지/에너지
+    "LG에너지솔루션 (373220.KS)": "373220.KS",
+    "POSCO홀딩스 (005490.KS)": "005490.KS",
+    "삼성SDI (006400.KS)": "006400.KS",
+    "LG화학 (051910.KS)": "051910.KS",
+    "에코프로비엠 (247540.KQ)": "247540.KQ",
+    "에코프로 (086520.KQ)": "086520.KQ",
+    "포스코퓨처엠 (003670.KS)": "003670.KS",
+    "엘앤에프 (066970.KS)": "066970.KS",
+    
+    # 바이오/제약
+    "삼성바이오로직스 (207940.KS)": "207940.KS",
+    "셀트리온 (068270.KS)": "068270.KS",
+    "알테오젠 (196170.KQ)": "196170.KQ",
+    "HLB (028300.KQ)": "028300.KQ",
+    "유한양행 (000100.KS)": "000100.KS",
+    "리가켐바이오 (141080.KQ)": "141080.KQ",
+    "삼천당제약 (000250.KQ)": "000250.KQ",
+    "휴젤 (145020.KQ)": "145020.KQ",
+    "클래시스 (214150.KQ)": "214150.KQ",
+    
+    # 자동차/방산/원전/중공업
+    "현대차 (005380.KS)": "005380.KS",
+    "기아 (000270.KS)": "000270.KS",
+    "현대모비스 (012330.KS)": "012330.KS",
+    "한화에어로스페이스 (012450.KS)": "012450.KS",
+    "현대로템 (064350.KS)": "064350.KS",
+    "LIG넥스원 (079550.KS)": "079550.KS",
+    "HD현대중공업 (329180.KS)": "329180.KS",
+    "HD한국조선해양 (009540.KS)": "009540.KS",
+    "삼성중공업 (010140.KS)": "010140.KS",
+    "두산에너빌리티 (034020.KS)": "034020.KS",
+    "HD현대일렉트릭 (267260.KS)": "267260.KS",
+    "효성중공업 (298040.KS)": "298040.KS",
+    "LS ELECTRIC (010120.KS)": "010120.KS",
+    
+    # 인터넷/플랫폼/엔터
+    "NAVER (035420.KS)": "035420.KS",
+    "카카오 (035720.KS)": "035720.KS",
+    "하이브 (352820.KS)": "352820.KS",
+    "크래프톤 (259960.KS)": "259960.KS",
+    "엔씨소프트 (036570.KS)": "036570.KS",
+    "JYP Ent. (035900.KQ)": "035900.KQ",
+    "에스엠 (041510.KQ)": "041510.KQ",
+    
+    # 금융/지주/기타
+    "KB금융 (105560.KS)": "105560.KS",
+    "신한지주 (055550.KS)": "055550.KS",
+    "하나금융지주 (086790.KS)": "086790.KS",
+    "삼성물산 (028260.KS)": "028260.KS",
+    "삼성생명 (032830.KS)": "032830.KS",
+    "KT&G (033780.KS)": "033780.KS",
+    "한국전력 (015760.KS)": "015760.KS",
+    
+    # 직접 입력
+    "[직접 티커 입력]": "CUSTOM"
+}
 
 # ==============================================================================
 # 3. 사이드바: Gemini 3.x 엔진 설정
@@ -119,13 +163,13 @@ with st.sidebar:
     """)
 
 # ==============================================================================
-# 4. 스마트 검색 바 (시총 300위 한글 검색)
+# 4. 스마트 검색 바
 # ==============================================================================
 col_search, col_custom = st.columns([3, 1])
 
 with col_search:
     selected_name = st.selectbox(
-        "🔍 종목 검색 (KRX 시가총액 상위 300대 기업 & 글로벌 빅테크)", 
+        "🔍 종목 검색 (국내 핵심 대표주 & 글로벌 빅테크)", 
         list(STOCK_DICT.keys()), 
         index=0
     )
