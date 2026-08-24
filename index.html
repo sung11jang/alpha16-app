@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alpha-16 v7.5 Institutional Terminal</title>
+  <title>Alpha-16 v7.5 Real-Time Terminal</title>
   <!-- Tailwind CSS & FontAwesome Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -24,7 +24,7 @@
 </head>
 <body class="bg-slate-100 flex justify-center min-h-screen text-slate-800 font-sans antialiased">
 
-  <!-- Mobile Container (여행앱과 동일한 스마트폰 전용 뷰포트 너비) -->
+  <!-- Mobile Container -->
   <div class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-2xl relative pb-10">
 
     <!-- 1. Top Header Banner -->
@@ -34,28 +34,33 @@
           <span class="text-xl">🏛️</span>
           <h1 class="font-bold text-lg tracking-tight">Alpha-16 v7.5 Master</h1>
         </div>
-        <span class="flex items-center text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Gemini 3.7 Flash
-        </span>
+        
+        <!-- 모델 선택 드롭다운 -->
+        <select id="modelSelector" class="bg-slate-800 text-emerald-400 border border-slate-700 text-xs rounded-lg px-2 py-1 focus:outline-none">
+          <option value="gemini-3.5-flash-lite">⚡ 3.5 Flash-Lite (초고속)</option>
+          <option value="gemini-3.7-flash" selected>🚀 3.7 Flash (최신 플래그십)</option>
+          <option value="gemini-3.5-flash">✨ 3.5 Flash (고성능)</option>
+          <option value="gemini-3.1-pro-preview">🧠 3.1 Pro (정밀 추론)</option>
+        </select>
       </div>
 
-      <!-- Quick Ticker & Search -->
+      <!-- Search Box -->
       <div class="bg-cardBg rounded-2xl p-3 border border-borderLine space-y-2">
         <div class="flex items-center bg-slate-900 rounded-xl px-3 py-2 border border-slate-700">
           <i class="fa-solid fa-magnifying-glass text-slate-400 mr-2 text-sm"></i>
-          <input id="stockInput" type="text" placeholder="종목명 또는 티커 (예: NVDA, 삼성전자, TSM)" value="NVDA"
+          <input id="stockInput" type="text" placeholder="종목명 또는 티커 (예: 삼성전자, NVDA)" value="NVDA"
                  class="w-full bg-transparent text-white text-sm focus:outline-none placeholder-slate-500" />
-          <button onclick="runAlpha16Analysis()" id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg ml-2 transition">
+          <button onclick="runStreamAnalysis()" id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg ml-2 transition">
             분석
           </button>
         </div>
 
-        <!-- Quick Tag Selectors -->
+        <!-- Quick Tags -->
         <div class="flex space-x-1.5 overflow-x-auto text-xs py-1 text-slate-300 no-scrollbar">
           <button onclick="setStock('NVDA')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">엔비디아</button>
           <button onclick="setStock('TSM')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">TSMC</button>
-          <button onclick="setStock('005930.KS')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">삼성전자</button>
-          <button onclick="setStock('000660.KS')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">SK하이닉스</button>
+          <button onclick="setStock('삼성전자')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">삼성전자</button>
+          <button onclick="setStock('SK하이닉스')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">SK하이닉스</button>
           <button onclick="setStock('AAPL')" class="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-slate-700">애플</button>
         </div>
       </div>
@@ -66,31 +71,29 @@
 
       <!-- Navigation Tabs -->
       <div class="flex bg-slate-200 p-1 rounded-xl text-xs font-medium text-slate-600">
-        <button onclick="switchTab('tab-report')" id="btn-tab-report" class="flex-1 py-1.5 bg-white text-blue-600 font-bold rounded-lg shadow-sm transition">Alpha-16 리포트</button>
+        <button onclick="switchTab('tab-report')" id="btn-tab-report" class="flex-1 py-1.5 bg-white text-blue-600 font-bold rounded-lg shadow-sm transition">Alpha-16 실시간 리포트</button>
         <button onclick="switchTab('tab-stop')" id="btn-tab-stop" class="flex-1 py-1.5 hover:text-slate-900 transition">자금관리/스탑</button>
         <button onclick="switchTab('tab-settings')" id="btn-tab-settings" class="flex-1 py-1.5 hover:text-slate-900 transition">설정</button>
       </div>
 
-      <!-- TAB 1: Alpha-16 Complete Master Report -->
+      <!-- TAB 1: Real-Time Stream Report -->
       <section id="tab-report" class="space-y-4">
 
-        <!-- Loading Indicator -->
-        <div id="loadingBox" class="hidden bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center space-y-3">
-          <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600"></i>
-          <p class="text-sm font-semibold text-slate-700">Alpha-16 v7.5 9단계 파이프라인 연산 중...</p>
-          <p class="text-xs text-slate-500">Gemini 3.7 Flash 엔진이 산업 병목 및 16대 팩터를 교차 검증하고 있습니다.</p>
-        </div>
+        <!-- Stream Output Container -->
+        <div id="reportCard" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <span id="reportHeaderTitle" class="font-bold text-sm text-slate-800">📊 대기 중</span>
+            <span id="reportStatusBadge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">대기</span>
+          </div>
 
-        <!-- Dynamic Output Container -->
-        <div id="reportContainer" class="space-y-3">
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 text-center shadow-sm text-slate-500">
-            <i class="fa-solid fa-chart-line text-3xl mb-2 text-blue-500"></i>
-            <p class="text-sm font-medium">상단에서 종목명을 입력하고 [분석]을 누르면<br><b class="text-slate-800">Step 0부터 Step 8까지 9단계 전 과정</b>이 전개됩니다.</p>
+          <!-- 실시간 텍스트 스트리밍 영역 -->
+          <div id="streamTextOutput" class="text-xs text-slate-700 leading-relaxed font-sans min-h-[120px]">
+            상단에서 종목명을 입력하고 [분석]을 누르면 즉시 실시간으로 9단계 리포트가 타이핑됩니다.
           </div>
         </div>
       </section>
 
-      <!-- TAB 2: Mechanical Money Management & Dynamic Stop -->
+      <!-- TAB 2: Dynamic Stop -->
       <section id="tab-stop" class="hidden space-y-3">
         <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
           <h3 class="font-bold text-sm text-slate-800 flex items-center">
@@ -107,7 +110,6 @@
             </div>
           </div>
 
-          <!-- Calculated Stop Bands -->
           <div class="space-y-2 pt-2 text-xs">
             <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl flex justify-between items-center">
               <div>
@@ -126,22 +128,9 @@
             <div class="bg-rose-100 border border-rose-300 p-3 rounded-xl flex justify-between items-center">
               <div>
                 <b class="text-rose-800">3차 스탑 (-30%)</b>
-                <p class="text-slate-600">전량 청산 (Slot 5 현금 전환)</p>
+                <p class="text-slate-600">전량 청산 (현금화)</p>
               </div>
               <span id="stop3Price" class="font-bold text-rose-800 text-sm">$84.00</span>
-            </div>
-          </div>
-
-          <!-- Free-Ride Target -->
-          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl space-y-1 text-xs">
-            <b class="text-emerald-700 flex items-center"><i class="fa-solid fa-gem mr-1"></i> Free-Ride 원금 회수</b>
-            <div class="flex justify-between text-slate-600 pt-1">
-              <span>+50% 도달 (30% 매도/원금 45% 회수):</span>
-              <b id="freeRide50" class="text-emerald-700">$150.00</b>
-            </div>
-            <div class="flex justify-between text-slate-600">
-              <span>+100% 도달 (원금 100% 전액 회수):</span>
-              <b id="freeRide100" class="text-emerald-700">$200.00</b>
             </div>
           </div>
         </div>
@@ -153,7 +142,6 @@
           <h3 class="font-bold text-sm text-slate-800 flex items-center">
             <i class="fa-solid fa-key text-blue-600 mr-2"></i> Gemini API Key 설정
           </h3>
-          <p class="text-xs text-slate-500">발급받은 키를 1회 입력하면 브라우저에 안전하게 저장됩니다.</p>
           <input id="userApiKey" type="password" placeholder="AIzaSy..." class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:outline-none focus:border-blue-500" />
           <button onclick="saveApiKey()" class="w-full bg-slate-900 text-white text-xs font-semibold py-2 rounded-lg hover:bg-slate-800 transition">키 영구 저장</button>
         </div>
@@ -162,9 +150,8 @@
     </main>
   </div>
 
-  <!-- JavaScript Logic -->
+  <!-- JavaScript Stream Logic -->
   <script>
-    // Tab switching
     function switchTab(tabId) {
       ['tab-report', 'tab-stop', 'tab-settings'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
@@ -176,7 +163,7 @@
 
     function setStock(ticker) {
       document.getElementById('stockInput').value = ticker;
-      runAlpha16Analysis();
+      runStreamAnalysis();
     }
 
     function saveApiKey() {
@@ -187,7 +174,6 @@
       }
     }
 
-    // Auto-load saved key
     window.addEventListener('DOMContentLoaded', () => {
       const savedKey = localStorage.getItem('GEMINI_API_KEY');
       if (savedKey) document.getElementById('userApiKey').value = savedKey;
@@ -201,15 +187,13 @@
       document.getElementById('stop1Price').innerText = (peak * 0.90).toFixed(2);
       document.getElementById('stop2Price').innerText = (peak * 0.80).toFixed(2);
       document.getElementById('stop3Price').innerText = (peak * 0.70).toFixed(2);
-
-      document.getElementById('freeRide50').innerText = (buy * 1.50).toFixed(2);
-      document.getElementById('freeRide100').innerText = (buy * 2.00).toFixed(2);
     }
 
-    // Run Alpha-16 v7.5 9-Step Master Pipeline with Gemini 3.7 Flash
-    async function runAlpha16Analysis() {
+    // 초고속 실시간 스트리밍 분석 엔진
+    async function runStreamAnalysis() {
       const ticker = document.getElementById('stockInput').value.trim();
-      let apiKey = localStorage.getItem('GEMINI_API_KEY') || document.getElementById('userApiKey').value.trim();
+      const apiKey = localStorage.getItem('GEMINI_API_KEY') || document.getElementById('userApiKey').value.trim();
+      const selectedModel = document.getElementById('modelSelector').value;
 
       if (!apiKey) {
         alert('설정 탭에서 Gemini API Key를 먼저 입력해주세요.');
@@ -222,11 +206,14 @@
         return;
       }
 
-      const loadingBox = document.getElementById('loadingBox');
-      const reportContainer = document.getElementById('reportContainer');
+      const reportHeaderTitle = document.getElementById('reportHeaderTitle');
+      const reportStatusBadge = document.getElementById('reportStatusBadge');
+      const streamTextOutput = document.getElementById('streamTextOutput');
 
-      loadingBox.classList.remove('hidden');
-      reportContainer.innerHTML = '';
+      reportHeaderTitle.innerText = `📊 ${ticker} 분석 중...`;
+      reportStatusBadge.className = 'text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold animate-pulse';
+      reportStatusBadge.innerText = `${selectedModel} 스트리밍`;
+      streamTextOutput.innerHTML = '<span class="text-slate-400">데이터 수신 대기 중...</span>';
 
       const prompt = `
 너는 기업 펀더멘털 분석 및 기계적 자금 관리 시스템인 'Alpha-16 v7.5' 전문 분석가다.
@@ -281,54 +268,61 @@
  3. 상방 목표가 및 밸류에이션 룸
  4. 원칙 요약 (One-Line Verdict)
 ======================================================================
-모바일 앱 카드 UI에 적합하도록 각 Step별로 깔끔한 마크다운과 구분을 사용하여 빠짐없이 서술해라.
+Step 0부터 Step 8까지 한 단계도 빠짐없이 명확하게 완전체로 서술하라.
 `;
 
       try {
-        // Calling Gemini 3.7 Flash endpoint
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${apiKey}&alt=sse`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
-        const data = await response.json();
-        loadingBox.classList.add('hidden');
-
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-          const rawText = data.candidates[0].content.parts[0].text;
-          renderReportCards(ticker, rawText);
-        } else {
-          reportContainer.innerHTML = `<div class="bg-rose-50 border border-rose-200 p-4 rounded-xl text-xs text-rose-700 font-medium">분석 오류: ${data.error ? data.error.message : '응답을 가져올 수 없습니다.'}</div>`;
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error ? errData.error.message : '요청 실패');
         }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullText = '';
+        streamTextOutput.innerHTML = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const json = JSON.parse(line.substring(6));
+                if (json.candidates && json.candidates[0].content.parts[0].text) {
+                  fullText += json.candidates[0].content.parts[0].text;
+                  
+                  // 실시간 마크다운 포맷팅 렌더링
+                  streamTextOutput.innerHTML = fullText
+                    .replace(/\*\*(.*?)\*\*/g, '<b class="text-slate-900">$1</b>')
+                    .replace(/### (.*?)\n/g, '<h4 class="font-bold text-blue-600 text-sm mt-3 mb-1">$1</h4>')
+                    .replace(/\[Step (.*?)\]/g, '<div class="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded text-xs inline-block my-1 border border-blue-200">Step $1</div>')
+                    .replace(/\n/g, '<br/>');
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        reportHeaderTitle.innerText = `📊 ${ticker} 리포트 완료`;
+        reportStatusBadge.className = 'text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold';
+        reportStatusBadge.innerText = '완료';
+
       } catch (err) {
-        loadingBox.classList.add('hidden');
-        reportContainer.innerHTML = `<div class="bg-rose-50 border border-rose-200 p-4 rounded-xl text-xs text-rose-700 font-medium">연결 실패: ${err.message}</div>`;
+        streamTextOutput.innerHTML = `<div class="bg-rose-50 border border-rose-200 p-3 rounded-xl text-xs text-rose-700 font-medium">오류 발생: ${err.message}<br><span class="text-slate-500">상단 모델을 [3.5 Flash-Lite]로 변경 후 다시 시도해보세요.</span></div>`;
+        reportStatusBadge.className = 'text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold';
+        reportStatusBadge.innerText = '실패';
       }
-    }
-
-    function renderReportCards(ticker, text) {
-      const container = document.getElementById('reportContainer');
-      // Format markdown-like response into aesthetic clean mobile cards
-      const formattedHtml = text
-        .replace(/\*\*(.*?)\*\*/g, '<b class="text-slate-900">$1</b>')
-        .replace(/### (.*?)\n/g, '<h4 class="font-bold text-blue-600 text-sm mt-3 mb-1">$1</h4>')
-        .replace(/\[Step (.*?)\]/g, '<div class="bg-blue-50 text-blue-700 font-bold px-2.5 py-1 rounded-md text-xs inline-block my-1.5 border border-blue-200">Step $1</div>')
-        .replace(/\n/g, '<br/>');
-
-      container.innerHTML = `
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
-          <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-            <span class="font-bold text-sm text-slate-800">📊 ${ticker} 마스터 리포트</span>
-            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">Alpha-16 v7.5</span>
-          </div>
-          <div class="text-xs text-slate-700 leading-relaxed font-sans">
-            ${formattedHtml}
-          </div>
-        </div>
-      `;
     }
   </script>
 </body>
